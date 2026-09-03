@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamado #{{ chamado["id"] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>🛠️ Sistema de Chamados TI</h1>
+        <p>Detalhes do chamado</p>
+    </div>
+</header>
+
+<main class="container">
+
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% if mensagens %}
+            {% for categoria, mensagem in mensagens %}
+                <div class="mensagem {{ categoria }}">{{ mensagem }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <section class="card">
+        <div class="titulo-lista">
+            <h2>Chamado #{{ chamado["id"] }}</h2>
+            <a href="/" class="voltar">← Voltar</a>
+        </div>
+
+        <div class="detalhes">
+            <div class="informacao"><strong>Solicitante</strong><p>{{ chamado["nome"] }}</p></div>
+            <div class="informacao"><strong>E-mail</strong><p>{{ chamado["email"] }}</p></div>
+            <div class="informacao"><strong>Setor</strong><p>{{ chamado["setor"] }}</p></div>
+            <div class="informacao"><strong>Título</strong><p>{{ chamado["titulo"] }}</p></div>
+            <div class="informacao"><strong>Descrição</strong><p>{{ chamado["descricao"] }}</p></div>
+            <div class="informacao">
+                <strong>Prioridade</strong>
+                <p><span class="prioridade {{ chamado['prioridade']|lower }}">{{ chamado["prioridade"] }}</span></p>
+            </div>
+            <div class="informacao">
+                <strong>Status atual</strong>
+                <p><span class="status">{{ chamado["status"] }}</span></p>
+            </div>
+            {% if chamado["solucao"] %}
+            <div class="informacao">
+                <strong>🛠️ Solução / observação técnica</strong>
+                <p>{{ chamado["solucao"] }}</p>
+            </div>
+            {% endif %}
+            <div class="informacao">
+                <strong>👨‍💻 Técnico responsável</strong>
+                <p>
+                    {% if chamado["tecnico_nome"] %}
+                        {{ chamado["tecnico_nome"] }}
+                    {% else %}
+                        Nenhum técnico atribuído
+                    {% endif %}
+                </p>
+            </div>
+            <div class="informacao">
+                <strong>Data de criação</strong>
+                <p>{{ chamado["criado_em"] }}</p>
+            </div>
+        </div>
+
+        {% if session["usuario_tipo"] == "tecnico" %}
+            <hr>
+            {% if not chamado["tecnico_id"] %}
+                <form action="/chamado/{{ chamado['id'] }}/assumir" method="POST">
+                    <button type="submit" class="botao-assumir">👨‍💻 Assumir chamado</button>
+                </form>
+            {% endif %}
+
+            <hr>
+            <h2>🔄 Atualizar chamado</h2>
+            <form action="/chamado/{{ chamado['id'] }}/status" method="POST">
+                <div class="campo">
+                    <label for="status">Novo status</label>
+                    <select name="status" id="status" required>
+                        <option value="Aberto" {% if chamado["status"] == "Aberto" %}selected{% endif %}>Aberto</option>
+                        <option value="Em andamento" {% if chamado["status"] == "Em andamento" %}selected{% endif %}>Em andamento</option>
+                        <option value="Resolvido" {% if chamado["status"] == "Resolvido" %}selected{% endif %}>Resolvido</option>
+                        <option value="Cancelado" {% if chamado["status"] == "Cancelado" %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="campo">
+                    <label for="solucao">Solução / observação técnica</label>
+                    <textarea name="solucao" id="solucao" rows="4" placeholder="Descreva o que foi feito, diagnóstico, orientação ao usuário ou motivo do cancelamento...">{{ chamado["solucao"] or "" }}</textarea>
+                    <small>Obrigatório ao marcar o chamado como <strong>Resolvido</strong>.</small>
+                </div>
+                <button type="submit">🔄 Atualizar chamado</button>
+            </form>
+        {% endif %}
+
+        <hr>
+
+        <div class="comentarios">
+            <h2>💬 Conversa do chamado</h2>
+
+            {% if comentarios %}
+                {% for comentario in comentarios %}
+                    <div class="comentario">
+                        <div class="comentario-cabecalho">
+                            <strong>
+                                {% if comentario["usuario_tipo"] == "tecnico" %}
+                                    🧑‍💻 {{ comentario["usuario_nome"] }}
+                                    <span class="etiqueta-tecnico">TI</span>
+                                {% else %}
+                                    👤 {{ comentario["usuario_nome"] }}
+                                {% endif %}
+                            </strong>
+                            <small>{{ comentario["criado_em"] }}</small>
+                        </div>
+                        <p>{{ comentario["mensagem"] }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="sem-comentarios">Ainda não existem comentários neste chamado.</p>
+            {% endif %}
+
+            <form action="/chamado/{{ chamado['id'] }}/comentario" method="POST" class="form-comentario">
+                <div class="campo">
+                    <label for="mensagem">Adicionar comentário</label>
+                    <textarea name="mensagem" id="mensagem" rows="4" placeholder="Digite uma mensagem..." required></textarea>
+                </div>
+                <button type="submit">💬 Enviar comentário</button>
+            </form>
+        </div>
+
+        <hr>
+
+        <div class="historico">
+            <h2>📋 Histórico do chamado</h2>
+            {% if historico %}
+                {% for item in historico %}
+                    <div class="comentario">
+                        <div class="comentario-cabecalho">
+                            <strong>{{ item["usuario_nome"] }}</strong>
+                            <small>{{ item["criado_em"] }}</small>
+                        </div>
+                        <p>{{ item["acao"] }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="sem-comentarios">Nenhuma atualização registrada ainda.</p>
+            {% endif %}
+        </div>
+    </section>
+</main>
+</body>
+</html>
